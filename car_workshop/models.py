@@ -22,7 +22,7 @@ class CarModel(models.Model):
 
     class Meta:
         db_table = 'model'
-        ordering = ['model_name']
+        ordering = ['mark']
 
     def __str__(self):
         return self.model_name

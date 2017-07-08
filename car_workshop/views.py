@@ -1,7 +1,9 @@
 from django.forms import model_to_dict
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.text import slugify
 
+from .forms import AddTaskForm
 from .models import *
 
 
@@ -28,3 +30,16 @@ def model_list(request, mark_slug=None):
 def job_list(request):
     jobs = [model_to_dict(job) for job in Job.objects.all()]
     return JsonResponse({'jobs': jobs})
+
+
+def new_task(request):
+    if request.method == "POST":
+        form = AddTaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.slug = slugify(task.number)
+            task.save()
+            return redirect('/')
+    else:
+        form = AddTaskForm()
+        return render(request, 'workshop/add_task.html', {'form': form})
