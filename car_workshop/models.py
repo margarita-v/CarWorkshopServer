@@ -30,6 +30,7 @@ class CarModel(models.Model):
 
 # Задача (конкретный заказ на ремонт машины)
 class Task(models.Model):
+    mark = models.ForeignKey(Mark, related_name='related_tasks', default=0)
     model = models.ForeignKey(CarModel, related_name='tasks', on_delete=models.CASCADE)
     slug = models.SlugField(max_length=30, unique=True)
     vin = models.CharField(max_length=17, unique=True)
