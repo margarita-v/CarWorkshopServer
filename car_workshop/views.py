@@ -48,15 +48,14 @@ def task_list(request):
 @transaction.atomic
 def new_task(request):
     if request.method == "POST":
-        form_task = AddTaskForm(request.POST)
-        form_jobs = AddJobForm(request.POST)
-        if form_task.is_valid() and form_jobs.is_valid():
-            task = form_task.save(commit=False)
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
             task.slug = slugify(task.number)
             task.save()
             # get chosen job's names
-            data = form_jobs.cleaned_data
-            for job in data['jobs']:
+            data = form.cleaned_data['jobs']
+            for job in data:
                 # find chosen job
                 job = Job.objects.get(job_name=job)
                 # create job status for current job in current task
@@ -65,9 +64,26 @@ def new_task(request):
                 job_status.job = job
                 job_status.save()
             return redirect('/')
-        else:
-            return render(request, 'workshop/add_task.html', {'form_task': form_task, 'form_jobs': form_jobs})
     else:
-        form_task = AddTaskForm()
-        form_jobs = AddJobForm()
-        return render(request, 'workshop/add_task.html', {'form_task': form_task, 'form_jobs': form_jobs})
+        form = TaskForm()
+    return render(request, 'workshop/add_task.html', {'form': form})
+
+
+@transaction.atomic
+def edit_task(request, slug):
+    task = get_object_or_404(Task, slug=slug)
+    if request.method == "POST":
+        # fill in task fields
+        form = TaskForm(request.POST, instance=task)
+        if form.is_valid():
+            # get chosen job's names
+            data = form.cleaned_data['jobs']
+            for job in data:
+                job = Job.objects.get(job_name=job)
+                job_status = JobStatus.objects.get(job=job, task=task)
+                job_status.status = True
+                job_status.save()
+            return redirect('/')
+    else:
+        form = TaskForm(instance=task)
+    return render(request, 'workshop/add_task.html', {'form': form})
