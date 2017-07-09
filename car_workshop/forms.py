@@ -12,3 +12,7 @@ class AddTaskForm(forms.ModelForm):
     class Meta:
         model = Task
         fields = ('mark', 'model', 'vin', 'number', 'date',)
+
+
+class AddJobForm(forms.Form):
+    jobs = forms.ModelMultipleChoiceField(queryset=Job.objects.all(), label='Jobs')

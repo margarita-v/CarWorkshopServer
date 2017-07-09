@@ -70,4 +70,4 @@ class JobStatus(models.Model):
         verbose_name_plural = 'Job statuses'
 
     def __str__(self):
-        return self.task + ' ' + self.job + ' ' + self.status
+        return str(self.task) + ' ' + str(self.job) + ' ' + str(self.status)

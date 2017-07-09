@@ -2,8 +2,9 @@ from django.forms import model_to_dict
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
+from django.db import transaction
 
-from .forms import AddTaskForm
+from .forms import *
 from .models import *
 
 
@@ -32,14 +33,29 @@ def job_list(request):
     return JsonResponse({'jobs': jobs})
 
 
+@transaction.atomic
 def new_task(request):
     if request.method == "POST":
-        form = AddTaskForm(request.POST)
-        if form.is_valid():
-            task = form.save(commit=False)
+        form_task = AddTaskForm(request.POST)
+        form_jobs = AddJobForm(request.POST)
+        if form_task.is_valid() and form_jobs.is_valid():
+            task = form_task.save(commit=False)
             task.slug = slugify(task.number)
             task.save()
+            # get chosen job's names
+            data = form_jobs.cleaned_data
+            for job in data['jobs']:
+                # find chosen job
+                job = Job.objects.get(job_name=job)
+                # create job status for current job in current task
+                job_status = JobStatus()
+                job_status.task = task
+                job_status.job = job
+                job_status.save()
             return redirect('/')
+        else:
+            return render(request, 'workshop/add_task.html', {'form_task': form_task, 'form_jobs': form_jobs})
     else:
-        form = AddTaskForm()
-        return render(request, 'workshop/add_task.html', {'form': form})
+        form_task = AddTaskForm()
+        form_jobs = AddJobForm()
+        return render(request, 'workshop/add_task.html', {'form_task': form_task, 'form_jobs': form_jobs})

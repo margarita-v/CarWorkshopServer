@@ -5,7 +5,8 @@
 <div>
 <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form.as_p }}
+    {{ form_task.as_p }}
+    {{ form_jobs.as_p }}
     <button type="submit">Save</button>
 </form>
 </div>
