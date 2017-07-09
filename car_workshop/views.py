@@ -33,6 +33,14 @@ def job_list(request):
     return JsonResponse({'jobs': jobs})
 
 
+def task_list(request):
+    tasks = [model_to_dict(task) for task in Task.objects.all()]
+    for task in tasks:
+        jobs = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
+        task['jobs'] = jobs
+    return JsonResponse({'tasks': tasks})
+
+
 @transaction.atomic
 def new_task(request):
     if request.method == "POST":
