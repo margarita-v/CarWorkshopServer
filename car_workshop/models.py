@@ -58,6 +58,9 @@ class Job(models.Model):
     def __str__(self):
         return self.job_name
 
+    def serialize(self):
+        return dict(id=self.id, job_name=self.job_name, price=self.price)
+
 
 # Статус конкретной работы в конкретной задаче
 class JobStatus(models.Model):

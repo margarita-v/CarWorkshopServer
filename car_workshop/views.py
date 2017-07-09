@@ -36,7 +36,11 @@ def job_list(request):
 def task_list(request):
     tasks = [model_to_dict(task) for task in Task.objects.all()]
     for task in tasks:
+        # add info about job's statuses for each task
         jobs = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
+        for job in jobs:
+            # add info about jobs for each job status
+            job['job'] = (Job.objects.get(id=job['job'])).serialize()
         task['jobs'] = jobs
     return JsonResponse({'tasks': tasks})
 
