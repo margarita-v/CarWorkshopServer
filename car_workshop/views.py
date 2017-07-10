@@ -8,6 +8,9 @@ from django.views.decorators.http import require_POST
 from .forms import *
 from .models import *
 
+import requests
+import json
+
 
 # get all car marks
 def mark_list(request):
@@ -82,13 +85,18 @@ def close_job_in_task(request, task_id, job_id):
 # close concrete task
 @transaction.atomic
 @require_POST
-def close_task(request, slug):
-    task = get_object_or_404(Task, slug=slug)
+def close_task(request):
+    body_unicode = request.body.decode('utf-8')
+    _data = json.loads(body_unicode)
+    mark = _data['mark']
+    print(mark)
+    # return HttpResponse("OK")
+    """task = get_object_or_404(Task, slug=slug)
     task.status = True
     task.save()
     for job_status in JobStatus.objects.filter(task=task):
         job_status.status = True
-        job_status.save()
+        job_status.save()"""
 
 
 # create a new task (using Django form)
@@ -123,6 +131,22 @@ def new_task(request):
 def edit_task(request, slug):
     slug = slug.lower()
     task = get_object_or_404(Task, slug=slug)
+    data = {
+        "mark": task.mark_id,
+        "model": task.model_id,
+        "vin": task.vin,
+        "number": task.number,
+        "slug": slugify(task.number),
+        "date": str(task.date),
+        "status": str(task.status)
+    }
+    url = 'http://localhost:8000/'
+    client = requests.session()
+    client.get(url)
+    cookies = dict(client.cookies)
+    headers = {'Content-type': 'application/json', "X-CSRFToken": client.cookies['csrftoken']}
+    requests.post(url + "task/close/", headers=headers, data=json.dumps(data), cookies=cookies)
+    return redirect('/')
     # if task is open
     if request.method == "POST" and not task.status:
         # fill in task fields
