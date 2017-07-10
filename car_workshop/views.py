@@ -38,9 +38,6 @@ def task_list(request):
     for task in tasks:
         # add info about job's statuses for each task
         jobs = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
-        for job in jobs:
-            # add info about jobs for each job status
-            job['job'] = (Job.objects.get(id=job['job'])).serialize()
         task['jobs'] = jobs
     return JsonResponse({'tasks': tasks})
 
@@ -52,6 +49,8 @@ def new_task(request):
         if form.is_valid():
             task = form.save(commit=False)
             task.slug = slugify(task.number)
+            # we should create opened tasks only
+            task.status = False
             task.save()
             # get chosen job's names
             data = form.cleaned_data['jobs']
@@ -72,17 +71,29 @@ def new_task(request):
 @transaction.atomic
 def edit_task(request, slug):
     task = get_object_or_404(Task, slug=slug)
-    if request.method == "POST":
+    # if task is open
+    if request.method == "POST" and not task.status:
         # fill in task fields
         form = TaskForm(request.POST, instance=task)
         if form.is_valid():
+            task = form.save(commit=False)
             # get chosen job's names
             data = form.cleaned_data['jobs']
-            for job in data:
-                job = Job.objects.get(job_name=job)
-                job_status = JobStatus.objects.get(job=job, task=task)
-                job_status.status = True
-                job_status.save()
+            job_status_list = JobStatus.objects.filter(task=task)
+            # if task is closed or if all jobs were chosen, then task will be closed
+            if task.status or len(data) == len(job_status_list):
+                # if all jobs were chosen, we should change task status
+                task.status = True
+                task.save()
+                for job_status in job_status_list:
+                    job_status.status = True
+                    job_status.save()
+            else:
+                for job in data:
+                    job = Job.objects.get(job_name=job)
+                    job_status = JobStatus.objects.get(job=job, task=task)
+                    job_status.status = True
+                    job_status.save()
             return redirect('/')
     else:
         form = TaskForm(instance=task)

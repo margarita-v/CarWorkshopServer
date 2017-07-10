@@ -8,8 +8,9 @@ class TaskForm(forms.ModelForm):
     vin = forms.CharField(min_length=17, max_length=17)
     number = forms.CharField(max_length=8)
     date = forms.DateTimeField()
+    status = forms.BooleanField(required=False)
     jobs = forms.ModelMultipleChoiceField(queryset=Job.objects.all(), label='Jobs')
 
     class Meta:
         model = Task
-        fields = ('mark', 'model', 'vin', 'number', 'date',)
+        fields = ('mark', 'model', 'vin', 'number', 'date', 'status', )

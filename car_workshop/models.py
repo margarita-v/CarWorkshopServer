@@ -36,6 +36,7 @@ class Task(models.Model):
     vin = models.CharField(max_length=17, unique=True)
     number = models.CharField(max_length=8, unique=True)
     date = models.DateTimeField()
+    status = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'task'
