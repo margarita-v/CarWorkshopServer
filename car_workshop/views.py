@@ -3,16 +3,19 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
 from django.db import transaction
+from django.views.decorators.http import require_POST
 
 from .forms import *
 from .models import *
 
 
+# get all car marks
 def mark_list(request):
     marks = [model_to_dict(mark) for mark in Mark.objects.all()]
     return JsonResponse({'marks': marks})
 
 
+# get all models in database or get all models for concrete mark
 def model_list(request, mark_slug=None):
     mark = None
     result = CarModel.objects.all()
@@ -28,11 +31,13 @@ def model_list(request, mark_slug=None):
     return JsonResponse({'mark': mark, 'models': result})
 
 
+# get all jobs
 def job_list(request):
     jobs = [model_to_dict(job) for job in Job.objects.all()]
     return JsonResponse({'jobs': jobs})
 
 
+# get all tasks
 def task_list(request):
     tasks = [model_to_dict(task) for task in Task.objects.all()]
     for task in tasks:
@@ -42,6 +47,51 @@ def task_list(request):
     return JsonResponse({'tasks': tasks})
 
 
+# get all info about concrete task
+def task_info(request, slug):
+    slug = slug.lower()
+    task = model_to_dict(get_object_or_404(Task, slug=slug))
+    return JsonResponse(task)
+
+
+# get all job statuses
+def job_statuses_list(request):
+    result = [model_to_dict(job_status) for job_status in JobStatus.objects.all()]
+    return JsonResponse({'job_statuses': result})
+
+
+# close job in task
+@transaction.atomic
+@require_POST
+def close_job_in_task(request, task_id, job_id):
+    task = get_object_or_404(Task, id=task_id)
+    job = get_object_or_404(Job, id=job_id)
+    job_status = get_object_or_404(JobStatus, task=task, job=job)
+    job_status.status = True
+    job_status.save()
+    # check if all jobs in this task are closed
+    found = False
+    for job in JobStatus.objects.filter(task=task) and not found:
+        found = job is False
+    # we should close task if all of its jobs are closed
+    if not found:
+        task.status = True
+        task.save()
+
+
+# close concrete task
+@transaction.atomic
+@require_POST
+def close_task(request, slug):
+    task = get_object_or_404(Task, slug=slug)
+    task.status = True
+    task.save()
+    for job_status in JobStatus.objects.filter(task=task):
+        job_status.status = True
+        job_status.save()
+
+
+# create a new task (using Django form)
 @transaction.atomic
 def new_task(request):
     if request.method == "POST":
@@ -68,8 +118,10 @@ def new_task(request):
     return render(request, 'workshop/add_task.html', {'form': form})
 
 
+# close task or close chosen jobs in concrete task (using Django form)
 @transaction.atomic
 def edit_task(request, slug):
+    slug = slug.lower()
     task = get_object_or_404(Task, slug=slug)
     # if task is open
     if request.method == "POST" and not task.status:
