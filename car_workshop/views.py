@@ -1,8 +1,10 @@
 from django.forms import model_to_dict
+from django.http import HttpResponse
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
 from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from .forms import *
@@ -54,6 +56,7 @@ def task_list(request):
 def task_info(request, slug):
     slug = slug.lower()
     task = model_to_dict(get_object_or_404(Task, slug=slug))
+    task['jobs'] = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
     return JsonResponse(task)
 
 
@@ -63,75 +66,78 @@ def job_statuses_list(request):
     return JsonResponse({'job_statuses': result})
 
 
-# close job in task
+# create a new task
 @transaction.atomic
 @require_POST
-def close_job_in_task(request, task_id, job_id):
-    task = get_object_or_404(Task, id=task_id)
-    job = get_object_or_404(Job, id=job_id)
-    job_status = get_object_or_404(JobStatus, task=task, job=job)
-    job_status.status = True
-    job_status.save()
-    # check if all jobs in this task are closed
-    found = False
-    for job in JobStatus.objects.filter(task=task) and not found:
-        found = job is False
-    # we should close task if all of its jobs are closed
-    if not found:
-        task.status = True
-        task.save()
+@csrf_exempt
+def create_task(request):
+    body_unicode = request.body.decode('utf-8')
+    data = json.loads(body_unicode)
+    task = Task()
+    task.mark_id = data['mark']
+    task.model_id = data['model']
+    task.date = data['date']
+    task.vin = data['vin']
+    task.number = data['number']
+    task.slug = slugify(task.number)
+    task.save()
+    for data_obj in data['jobs']:
+        job = get_object_or_404(Job, id=data_obj['id'])
+        job_status = JobStatus()
+        job_status.task = task
+        job_status.job = job
+        job_status.save()
+    return HttpResponse("OK")
 
 
 # close concrete task
 @transaction.atomic
 @require_POST
+@csrf_exempt
 def close_task(request):
     body_unicode = request.body.decode('utf-8')
-    _data = json.loads(body_unicode)
-    mark = _data['mark']
-    print(mark)
-    # return HttpResponse("OK")
-    """task = get_object_or_404(Task, slug=slug)
+    data = json.loads(body_unicode)
+    task = get_object_or_404(Task, id=data['id'])
     task.status = True
     task.save()
     for job_status in JobStatus.objects.filter(task=task):
         job_status.status = True
-        job_status.save()"""
+        job_status.save()
+    return HttpResponse("OK")
 
 
-# create a new task (using Django form)
+# close concrete job in concrete task
 @transaction.atomic
-def new_task(request):
-    if request.method == "POST":
-        form = TaskForm(request.POST)
-        if form.is_valid():
-            task = form.save(commit=False)
-            task.slug = slugify(task.number)
-            # we should create opened tasks only
-            task.status = False
-            task.save()
-            # get chosen job's names
-            data = form.cleaned_data['jobs']
-            for job in data:
-                # find chosen job
-                job = Job.objects.get(job_name=job)
-                # create job status for current job in current task
-                job_status = JobStatus()
-                job_status.task = task
-                job_status.job = job
-                job_status.save()
-            return redirect('/')
-    else:
-        form = TaskForm()
-    return render(request, 'workshop/add_task.html', {'form': form})
+@require_POST
+@csrf_exempt
+def close_job_in_task(request):
+    body_unicode = request.body.decode('utf-8')
+    data = json.loads(body_unicode)
+    task = get_object_or_404(Task, id=data['task_id'])
+    job = get_object_or_404(Job, id=data['job_id'])
+    job_status = get_object_or_404(JobStatus, task=task, job=job)
+    job_status.status = True
+    job_status.save()
+    # check if all jobs in this task are closed
+    found = False
+    for job in JobStatus.objects.filter(task=task):
+        found = job.status is False
+        if found:
+            break
+    # we should close task if all of its jobs are closed
+    if not found:
+        task.status = True
+        task.save()
+    return HttpResponse("OK")
 
 
-# close task or close chosen jobs in concrete task (using Django form)
+# test POST requests
 @transaction.atomic
-def edit_task(request, slug):
-    slug = slug.lower()
-    task = get_object_or_404(Task, slug=slug)
+def test(request):
+    """
+    # for closing task
     data = {
+        "id": 15,
         "mark": task.mark_id,
         "model": task.model_id,
         "vin": task.vin,
@@ -140,13 +146,33 @@ def edit_task(request, slug):
         "date": str(task.date),
         "status": str(task.status)
     }
+    # for closing job in task
+    data = {
+        "task_id": 18,
+        "job_id": 1
+    }"""
+    # for creation a new task
+    data = {
+        "mark": 7,
+        "model": 21,
+        "vin": "92345678909876543",
+        "number": "c345cx",
+        "date": "2012-04-05T20:40:45Z",
+        "jobs": [
+            {"id": 1},
+            {"id": 2}
+        ]
+    }
     url = 'http://localhost:8000/'
-    client = requests.session()
-    client.get(url)
-    cookies = dict(client.cookies)
-    headers = {'Content-type': 'application/json', "X-CSRFToken": client.cookies['csrftoken']}
-    requests.post(url + "task/close/", headers=headers, data=json.dumps(data), cookies=cookies)
+    headers = {'Content-type': 'application/json'}
+    requests.post(url + "task/create/", headers=headers, data=json.dumps(data))
     return redirect('/')
+
+
+"""
+    # close task or close chosen jobs in concrete task (using Django form)
+    slug = slug.lower()
+    task = get_object_or_404(Task, slug=slug)
     # if task is open
     if request.method == "POST" and not task.status:
         # fill in task fields
@@ -173,4 +199,32 @@ def edit_task(request, slug):
             return redirect('/')
     else:
         form = TaskForm(instance=task)
+    return render(request, 'workshop/add_task.html', {'form': form})
+    """
+
+
+# create a new task (using Django form)
+@transaction.atomic
+def new_task(request):
+    if request.method == "POST":
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            task = form.save(commit=False)
+            task.slug = slugify(task.number)
+            # we should create opened tasks only
+            task.status = False
+            task.save()
+            # get chosen job's names
+            data = form.cleaned_data['jobs']
+            for job in data:
+                # find chosen job
+                job = Job.objects.get(job_name=job)
+                # create job status for current job in current task
+                job_status = JobStatus()
+                job_status.task = task
+                job_status.job = job
+                job_status.save()
+            return redirect('/')
+    else:
+        form = TaskForm()
     return render(request, 'workshop/add_task.html', {'form': form})
