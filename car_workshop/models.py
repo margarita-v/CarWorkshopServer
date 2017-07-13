@@ -29,6 +29,7 @@ class CarModel(models.Model):
 
 # Задача (конкретный заказ на ремонт машины)
 class Task(models.Model):
+    name = models.CharField(max_length=100, default="", unique=True)
     mark = models.ForeignKey(Mark, related_name='related_tasks', default=0)
     model = models.ForeignKey(CarModel, related_name='tasks', on_delete=models.CASCADE)
     vin = models.CharField(max_length=17, unique=True)

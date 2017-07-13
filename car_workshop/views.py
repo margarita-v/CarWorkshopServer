@@ -53,6 +53,7 @@ def task_list(request):
 
 
 # get all info about concrete task
+# !!! FIND BY NAME ?
 def task_info(request, number):
     number = number.lower()
     task = model_to_dict(get_object_or_404(Task, number=number))
@@ -67,6 +68,7 @@ def job_statuses_list(request):
 
 
 # create a new task
+# send task fields and jobs as json array
 @transaction.atomic
 @require_POST
 @csrf_exempt
@@ -79,11 +81,16 @@ def create_task(request):
     task.date = data['date']
     task.vin = data['vin']
     task.number = data['number']
-    task.slug = slugify(task.number)
+    task.number = task.number.upper()
+    task.name = data['mark_name'] + ' ' + task.number + ' ' + str(task.date)
     task.save()
     for data_obj in data['jobs']:
-        # DESERIALIZE JOB
-        job = get_object_or_404(Job, id=data_obj['id'])
+        # deserialize job
+        job = Job()
+        job.id = data_obj['id']
+        job.job_name = data_obj['job_name']
+        job.price = data_obj['price']
+        # create job status
         job_status = JobStatus()
         job_status.task = task
         job_status.job = job
@@ -92,45 +99,46 @@ def create_task(request):
 
 
 # close concrete task
+# send task name
 @transaction.atomic
 @require_POST
 @csrf_exempt
 def close_task(request):
     body_unicode = request.body.decode('utf-8')
     data = json.loads(body_unicode)
-    # FIND TASK BY NAME, NOT BY ID
-    task_id = data['id']
-    task = get_object_or_404(Task, id=task_id)
+    task_name = data['name']
+    task = get_object_or_404(Task, name=task_name)
     task.status = True
     task.save()
-    for job_status in JobStatus.objects.filter(task=task_id):
+    for job_status in JobStatus.objects.filter(task=task.id):
         job_status.status = True
         job_status.save()
     return HttpResponse("OK")
 
 
 # close concrete job in concrete task
+# send task name and job_id
 @transaction.atomic
 @require_POST
 @csrf_exempt
 def close_job_in_task(request):
     body_unicode = request.body.decode('utf-8')
     data = json.loads(body_unicode)
-    # FIND TASK BY NAME, NOT BY ID
-    task_id = data['task_id']
+    task_name = data['task_name']
     job_id = data['job_id']
-    job_status = get_object_or_404(JobStatus, task=task_id, job=job_id)
+    task = get_object_or_404(Task, name=task_name)
+    job_status = get_object_or_404(JobStatus, task=task.id, job=job_id)
     job_status.status = True
     job_status.save()
     # check if all jobs in this task are closed
     found = False
-    for job in JobStatus.objects.filter(task=task_id):
+    for job in JobStatus.objects.filter(task=task.id):
         found = job.status is False
         if found:
             break
     # we should close task if all of its jobs are closed
     if not found:
-        task = get_object_or_404(Task, id=task_id)
+        task = get_object_or_404(Task, id=task.id)
         task.status = True
         task.save()
     return HttpResponse("OK")
@@ -142,32 +150,42 @@ def test(request):
     # for closing task
     # task/close
     data = {
-        "id": 14,
+        "name": "Ferrari A666AX 2012-04-05T20:40:45Z",
     }
-    """
+
     # for closing job in task
     # job/close
     data = {
-        "task_id": 18,
-        "job_id": 1
+        "task_name": "Ferrari O666AX 2012-04-05T20:40:45Z",
+        "job_id": 2
     }
     # for creation a new task
     # task/create
+    """
     data = {
+        "mark_name": "Ferrari",
         "mark": 7,
         "model": 21,
-        "vin": "92345678909876543",
-        "number": "c345cx",
+        "vin": "33345678909876543",
+        "number": "o666ax",
         "date": "2012-04-05T20:40:45Z",
         "jobs": [
-            {"id": 1},
-            {"id": 2}
+            {
+                "id": 1,
+                "price": 300,
+                "job_name": "Замена масла в двигателе"
+            },
+            {
+                "id": 2,
+                "price": 600,
+                "job_name": "Замена масляного фильтра"
+            }
         ]
     }
     """
     url = 'http://localhost:8000/'
     headers = {'Content-type': 'application/json'}
-    requests.post(url + "task/close/", headers=headers, data=json.dumps(data))
+    requests.post(url + "job/close/", headers=headers, data=json.dumps(data))
     return redirect('/')
 
 
