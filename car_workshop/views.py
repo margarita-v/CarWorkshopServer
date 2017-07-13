@@ -53,9 +53,9 @@ def task_list(request):
 
 
 # get all info about concrete task
-def task_info(request, slug):
-    slug = slug.lower()
-    task = model_to_dict(get_object_or_404(Task, slug=slug))
+def task_info(request, number):
+    number = number.lower()
+    task = model_to_dict(get_object_or_404(Task, number=number))
     task['jobs'] = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
     return JsonResponse(task)
 
@@ -82,6 +82,7 @@ def create_task(request):
     task.slug = slugify(task.number)
     task.save()
     for data_obj in data['jobs']:
+        # DESERIALIZE JOB
         job = get_object_or_404(Job, id=data_obj['id'])
         job_status = JobStatus()
         job_status.task = task
@@ -97,10 +98,12 @@ def create_task(request):
 def close_task(request):
     body_unicode = request.body.decode('utf-8')
     data = json.loads(body_unicode)
-    task = get_object_or_404(Task, id=data['id'])
+    # FIND TASK BY NAME, NOT BY ID
+    task_id = data['id']
+    task = get_object_or_404(Task, id=task_id)
     task.status = True
     task.save()
-    for job_status in JobStatus.objects.filter(task=task):
+    for job_status in JobStatus.objects.filter(task=task_id):
         job_status.status = True
         job_status.save()
     return HttpResponse("OK")
@@ -113,19 +116,21 @@ def close_task(request):
 def close_job_in_task(request):
     body_unicode = request.body.decode('utf-8')
     data = json.loads(body_unicode)
-    task = get_object_or_404(Task, id=data['task_id'])
-    job = get_object_or_404(Job, id=data['job_id'])
-    job_status = get_object_or_404(JobStatus, task=task, job=job)
+    # FIND TASK BY NAME, NOT BY ID
+    task_id = data['task_id']
+    job_id = data['job_id']
+    job_status = get_object_or_404(JobStatus, task=task_id, job=job_id)
     job_status.status = True
     job_status.save()
     # check if all jobs in this task are closed
     found = False
-    for job in JobStatus.objects.filter(task=task):
+    for job in JobStatus.objects.filter(task=task_id):
         found = job.status is False
         if found:
             break
     # we should close task if all of its jobs are closed
     if not found:
+        task = get_object_or_404(Task, id=task_id)
         task.status = True
         task.save()
     return HttpResponse("OK")
@@ -134,24 +139,20 @@ def close_job_in_task(request):
 # test POST requests
 @transaction.atomic
 def test(request):
-    """
     # for closing task
+    # task/close
     data = {
-        "id": 15,
-        "mark": task.mark_id,
-        "model": task.model_id,
-        "vin": task.vin,
-        "number": task.number,
-        "slug": slugify(task.number),
-        "date": str(task.date),
-        "status": str(task.status)
+        "id": 14,
     }
+    """
     # for closing job in task
+    # job/close
     data = {
         "task_id": 18,
         "job_id": 1
-    }"""
+    }
     # for creation a new task
+    # task/create
     data = {
         "mark": 7,
         "model": 21,
@@ -163,9 +164,10 @@ def test(request):
             {"id": 2}
         ]
     }
+    """
     url = 'http://localhost:8000/'
     headers = {'Content-type': 'application/json'}
-    requests.post(url + "task/create/", headers=headers, data=json.dumps(data))
+    requests.post(url + "task/close/", headers=headers, data=json.dumps(data))
     return redirect('/')
 
 

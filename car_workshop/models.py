@@ -18,7 +18,6 @@ class Mark(models.Model):
 class CarModel(models.Model):
     mark = models.ForeignKey(Mark, related_name='models', on_delete=models.CASCADE)
     model_name = models.CharField(max_length=30, unique=True)
-    slug = models.SlugField(max_length=30, unique=True)
 
     class Meta:
         db_table = 'model'
@@ -32,7 +31,6 @@ class CarModel(models.Model):
 class Task(models.Model):
     mark = models.ForeignKey(Mark, related_name='related_tasks', default=0)
     model = models.ForeignKey(CarModel, related_name='tasks', on_delete=models.CASCADE)
-    slug = models.SlugField(max_length=30, unique=True)
     vin = models.CharField(max_length=17, unique=True)
     number = models.CharField(max_length=8, unique=True)
     date = models.DateTimeField()
@@ -49,7 +47,6 @@ class Task(models.Model):
 # Работы, предоставляемые мастерской
 class Job(models.Model):
     job_name = models.CharField(max_length=30, unique=True)
-    slug = models.SlugField(max_length=30, unique=True)
     price = models.IntegerField()
 
     class Meta:
