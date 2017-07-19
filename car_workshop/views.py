@@ -53,10 +53,8 @@ def task_list(request):
 
 
 # get all info about concrete task
-# !!! FIND BY NAME ?
-def task_info(request, number):
-    number = number.lower()
-    task = model_to_dict(get_object_or_404(Task, number=number))
+def task_info(request, task_id):
+    task = model_to_dict(get_object_or_404(Task, id=task_id))
     task['jobs'] = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
     return JsonResponse(task)
 
@@ -99,46 +97,45 @@ def create_task(request):
 
 
 # close concrete task
-# send task name
+# send task id
 @transaction.atomic
 @require_POST
 @csrf_exempt
 def close_task(request):
     body_unicode = request.body.decode('utf-8')
     data = json.loads(body_unicode)
-    task_name = data['name']
-    task = get_object_or_404(Task, name=task_name)
+    task_id = data['id']
+    task = get_object_or_404(Task, id=task_id)
     task.status = True
     task.save()
-    for job_status in JobStatus.objects.filter(task=task.id):
+    for job_status in JobStatus.objects.filter(task=task_id):
         job_status.status = True
         job_status.save()
     return HttpResponse("OK")
 
 
 # close concrete job in concrete task
-# send task name and job_id
+# send task id and job_id
 @transaction.atomic
 @require_POST
 @csrf_exempt
 def close_job_in_task(request):
     body_unicode = request.body.decode('utf-8')
     data = json.loads(body_unicode)
-    task_name = data['task_name']
+    task_id = data['task_id']
     job_id = data['job_id']
-    task = get_object_or_404(Task, name=task_name)
-    job_status = get_object_or_404(JobStatus, task=task.id, job=job_id)
+    job_status = get_object_or_404(JobStatus, task=task_id, job=job_id)
     job_status.status = True
     job_status.save()
     # check if all jobs in this task are closed
     found = False
-    for job in JobStatus.objects.filter(task=task.id):
+    for job in JobStatus.objects.filter(task=task_id):
         found = job.status is False
         if found:
             break
     # we should close task if all of its jobs are closed
     if not found:
-        task = get_object_or_404(Task, id=task.id)
+        task = get_object_or_404(Task, id=task_id)
         task.status = True
         task.save()
     return HttpResponse("OK")
@@ -150,14 +147,14 @@ def test(request):
     # for closing task
     # task/close
     data = {
-        "name": "Ferrari A666AX 2012-04-05T20:40:45Z",
+        "task_id": 26
     }
 
     # for closing job in task
     # job/close
     data = {
-        "task_name": "Ferrari O666AX 2012-04-05T20:40:45Z",
-        "job_id": 2
+        "task_id": 27,
+        "job_id": 1
     }
     # for creation a new task
     # task/create

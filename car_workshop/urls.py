@@ -9,7 +9,7 @@ urlpatterns = [
     url(r'^jobs/$', views.job_list, name='job_list'),  # get all jobs
     url(r'^job_statuses/$', views.job_statuses_list, name='job_statuses'),  # get all job statuses
     url(r'^tasks/$', views.task_list, name='task_list'),  # get all tasks
-    url(r'^info/(?P<slug>[-\w]+)/$', views.task_info, name='task_info'),  # get info about task
+    url(r'^info/(?P<task_id>\d+)/$', views.task_info, name='task_info'),  # get info about task
 
     # POST requests
     url(r'^task/create/$', views.create_task, name='create_task'),  # create task
