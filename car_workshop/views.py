@@ -77,7 +77,6 @@ def create_task(request):
     task.vin = data['vin']
     task.number = data['number']
     task.number = task.number.upper()
-    task.name = data['mark_name'] + ' ' + task.number + ' ' + str(task.date)
     task.save()
     for data_obj in data['jobs']:
         # deserialize job
