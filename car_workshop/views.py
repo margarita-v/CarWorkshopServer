@@ -46,17 +46,14 @@ def job_list(request):
 def task_list(request):
     tasks = [model_to_dict(task) for task in Task.objects.all()]
     for task in tasks:
-        # add info about job's statuses for each task
-        jobs = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
-        task['jobs'] = jobs
+        change_task_response(task)
     return JsonResponse({'tasks': tasks})
 
 
 # get all info about concrete task
 def task_info(request, task_id):
     task = model_to_dict(get_object_or_404(Task, id=task_id))
-    task['jobs'] = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
-    return JsonResponse(task)
+    return JsonResponse(change_task_response(task))
 
 
 # get all job statuses
@@ -185,6 +182,13 @@ def test(request):
     requests.post(url + "job/close/", headers=headers, data=json.dumps(data))
     return redirect('/')
 
+
+# get info about jobs for each task
+def change_task_response(task):
+    task['jobs'] = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
+    for job_status in task['jobs']:
+        job_status['job'] = model_to_dict(Job.objects.get(id=job_status['job']))
+    return task
 
 """
     # close task or close chosen jobs in concrete task (using Django form)
