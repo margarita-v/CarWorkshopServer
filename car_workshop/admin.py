@@ -3,7 +3,7 @@ from .models import *
 
 
 class MarkAdmin(admin.ModelAdmin):
-    prepopulated_fields = {'slug': ('mark_name', )}
+    prepopulated_fields = {'slug': ('name', )}
 
 
 admin.site.register(Mark, MarkAdmin)

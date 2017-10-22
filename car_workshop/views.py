@@ -82,7 +82,7 @@ def create_task(request):
         # deserialize job
         job = Job()
         job.id = data_obj['id']
-        job.job_name = data_obj['job_name']
+        job.job_name = data_obj['name']
         job.price = data_obj['price']
         # create job status
         job_status = JobStatus()
@@ -166,12 +166,12 @@ def test(request):
             {
                 "id": 1,
                 "price": 300,
-                "job_name": "Замена масла в двигателе"
+                "name": "Замена масла в двигателе"
             },
             {
                 "id": 2,
                 "price": 600,
-                "job_name": "Замена масляного фильтра"
+                "name": "Замена масляного фильтра"
             }
         ]
     }
@@ -188,6 +188,7 @@ def change_task_response(task):
     for job_status in task['jobs']:
         job_status['job'] = model_to_dict(Job.objects.get(id=job_status['job']))
     return task
+
 
 """
     # close task or close chosen jobs in concrete task (using Django form)
@@ -238,7 +239,7 @@ def new_task(request):
             data = form.cleaned_data['jobs']
             for job in data:
                 # find chosen job
-                job = Job.objects.get(job_name=job)
+                job = Job.objects.get(name=job)
                 # create job status for current job in current task
                 job_status = JobStatus()
                 job_status.task = task

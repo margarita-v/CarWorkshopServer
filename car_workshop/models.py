@@ -3,28 +3,28 @@ from django.db import models
 
 # Марка машины
 class Mark(models.Model):
-    mark_name = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=30, unique=True)
     slug = models.SlugField(max_length=30, unique=True)
 
     class Meta:
         db_table = 'mark'
-        ordering = ['mark_name']
+        ordering = ['name']
 
     def __str__(self):
-        return self.mark_name
+        return self.name
 
 
 # Модель машины
 class CarModel(models.Model):
     mark = models.ForeignKey(Mark, related_name='models', on_delete=models.CASCADE)
-    model_name = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=30, unique=True)
 
     class Meta:
         db_table = 'model'
         ordering = ['mark']
 
     def __str__(self):
-        return self.model_name
+        return self.name
 
 
 # Задача (конкретный заказ на ремонт машины)
@@ -41,23 +41,23 @@ class Task(models.Model):
         ordering = ['-date']
 
     def __str__(self):
-        return self.model.model_name + ' ' + str(self.date)
+        return self.model.name + ' ' + str(self.date)
 
 
 # Работы, предоставляемые мастерской
 class Job(models.Model):
-    job_name = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=30, unique=True)
     price = models.IntegerField()
 
     class Meta:
         db_table = 'job'
-        ordering = ['job_name']
+        ordering = ['name']
 
     def __str__(self):
-        return self.job_name
+        return self.name
 
     def serialize(self):
-        return dict(id=self.id, job_name=self.job_name, price=self.price)
+        return dict(id=self.id, job_name=self.name, price=self.price)
 
 
 # Статус конкретной работы в конкретной задаче
