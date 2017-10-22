@@ -129,12 +129,14 @@ def close_job_in_task(request):
         found = job.status is False
         if found:
             break
+    result = False
     # we should close task if all of its jobs are closed
     if not found:
         task = get_object_or_404(Task, id=task_id)
         task.status = True
         task.save()
-    return HttpResponse("OK")
+        result = True
+    return JsonResponse({'task_status': result})
 
 
 # test POST requests
@@ -149,7 +151,7 @@ def test(request):
     # for closing job in task
     # job/close
     data = {
-        "task_id": 27,
+        "task_id": 26,
         "job_id": 1
     }
     # for creation a new task
@@ -179,7 +181,7 @@ def test(request):
     url = 'http://localhost:8000/'
     headers = {'Content-type': 'application/json'}
     requests.post(url + "job/close/", headers=headers, data=json.dumps(data))
-    return redirect('/')
+    return redirect('/tasks')
 
 
 # get info about jobs for each task
