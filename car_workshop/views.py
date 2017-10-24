@@ -33,7 +33,8 @@ def model_list(request, mark_slug=None):
         # for JsonResponse
         mark = model_to_dict(mark)
     result = [model_to_dict(model) for model in result]
-    return JsonResponse({'mark': mark, 'models': result})
+    return JsonResponse(result, safe=False) if not mark_slug \
+        else JsonResponse({'mark': mark, 'models': result})
 
 
 # get all jobs
