@@ -17,7 +17,7 @@ import json
 # get all car marks
 def mark_list(request):
     marks = [model_to_dict(mark) for mark in Mark.objects.all()]
-    return JsonResponse({'marks': marks})
+    return JsonResponse(marks, safe=False)
 
 
 # get all models in database or get all models for concrete mark
@@ -39,7 +39,7 @@ def model_list(request, mark_slug=None):
 # get all jobs
 def job_list(request):
     jobs = [model_to_dict(job) for job in Job.objects.all()]
-    return JsonResponse({'jobs': jobs})
+    return JsonResponse(jobs, safe=False)
 
 
 # get all tasks
@@ -47,7 +47,7 @@ def task_list(request):
     tasks = [model_to_dict(task) for task in Task.objects.all()]
     for task in tasks:
         change_task_response(task)
-    return JsonResponse({'tasks': tasks})
+    return JsonResponse(tasks, safe=False)
 
 
 # get all info about concrete task
@@ -59,7 +59,7 @@ def task_info(request, task_id):
 # get all job statuses
 def job_statuses_list(request):
     result = [model_to_dict(job_status) for job_status in JobStatus.objects.all()]
-    return JsonResponse({'job_statuses': result})
+    return JsonResponse(result, safe=False)
 
 
 # create a new task
