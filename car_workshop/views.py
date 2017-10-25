@@ -100,8 +100,7 @@ def create_task(request):
 @csrf_exempt
 def close_task(request):
     body_unicode = request.body.decode('utf-8')
-    data = json.loads(body_unicode)
-    task_id = data['id']
+    task_id = json.loads(body_unicode)
     task = get_object_or_404(Task, id=task_id)
     task.status = True
     task.save()
@@ -157,9 +156,7 @@ def test(request):
     }
     # for creation a new task
     # task/create
-    """
     data = {
-        "mark_name": "Ferrari",
         "mark": 7,
         "model": 21,
         "vin": "33345678909876543",
@@ -178,10 +175,9 @@ def test(request):
             }
         ]
     }
-    """
-    url = 'http://localhost:8000/'
+    url = 'http://127.0.0.1:8000/'
     headers = {'Content-type': 'application/json'}
-    requests.post(url + "job/close/", headers=headers, data=json.dumps(data))
+    requests.post(url + "task/create/", headers=headers, data=json.dumps(data))
     return redirect('/tasks')
 
 
