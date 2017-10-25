@@ -31,8 +31,8 @@ class CarModel(models.Model):
 class Task(models.Model):
     mark = models.ForeignKey(Mark, related_name='related_tasks', default=0)
     model = models.ForeignKey(CarModel, related_name='tasks', on_delete=models.CASCADE)
-    vin = models.CharField(max_length=17, unique=True)
-    number = models.CharField(max_length=8, unique=True)
+    vin = models.CharField(max_length=17)
+    number = models.CharField(max_length=8)
     date = models.DateTimeField()
     status = models.BooleanField(default=False)
 
