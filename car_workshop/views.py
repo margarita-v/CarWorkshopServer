@@ -74,6 +74,7 @@ def create_task(request):
     task = Task()
     task.mark_id = data['mark']
     task.model_id = data['model']
+    task.name = get_object_or_404(Mark, id=task.mark_id).name
     task.date = data['date']
     task.vin = data['vin']
     task.number = data['number']
