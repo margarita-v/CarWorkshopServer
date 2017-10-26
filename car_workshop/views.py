@@ -107,7 +107,7 @@ def close_task(request):
     for job_status in JobStatus.objects.filter(task=task_id):
         job_status.status = True
         job_status.save()
-    return HttpResponse("OK")
+    return get_json_for_task(task)
 
 
 # close concrete job in concrete task
@@ -129,14 +129,25 @@ def close_job_in_task(request):
         found = job.status is False
         if found:
             break
-    result = False
     # we should close task if all of its jobs are closed
+    task = get_object_or_404(Task, id=task_id)
     if not found:
-        task = get_object_or_404(Task, id=task_id)
         task.status = True
         task.save()
-        result = True
-    return JsonResponse({'task_status': result})
+    return get_json_for_task(task)
+
+
+# get JsonResponse for task object
+def get_json_for_task(task):
+    return JsonResponse(change_task_response(model_to_dict(task)))
+
+
+# get info about jobs for each task
+def change_task_response(task):
+    task['jobs'] = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
+    for job_status in task['jobs']:
+        job_status['job'] = model_to_dict(Job.objects.get(id=job_status['job']))
+    return task
 
 
 # test POST requests
@@ -179,14 +190,6 @@ def test(request):
     headers = {'Content-type': 'application/json'}
     requests.post(url + "task/create/", headers=headers, data=json.dumps(data))
     return redirect('/tasks')
-
-
-# get info about jobs for each task
-def change_task_response(task):
-    task['jobs'] = [model_to_dict(job) for job in JobStatus.objects.filter(task=task['id'])]
-    for job_status in task['jobs']:
-        job_status['job'] = model_to_dict(Job.objects.get(id=job_status['job']))
-    return task
 
 
 """
