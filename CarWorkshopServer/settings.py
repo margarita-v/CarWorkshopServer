@@ -25,7 +25,10 @@ SECRET_KEY = '413a3^q@jbpj0r-b10)04@&t73=&o*2yk-c4fdnv8@+sn!6kt4'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'bzgcgrqyxa.localtunnel.me',
+    '127.0.0.1'
+]
 
 
 # Application definition
